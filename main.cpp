@@ -140,9 +140,10 @@ void update(string (*board)[8], string move){
   }  
 
 }
-void gameManager(string (*board)[8], string move, bool player, bool &gameEnded, bool &whiteWon){
-  //check if game aleady ended
+vector<string> gameManager(string (*board)[8], bool player, bool &gameEnded, bool &whiteWon){
   int nOfWhite = 0, nOfBlack = 0;
+  vector<string> allPossibleMoves;
+  //check if game aleady ended
   for(int i=0; i<8;i++)
     for(int j=0; j<8; j++){
       if(board[i][j]=="💀")//white
@@ -153,10 +154,12 @@ void gameManager(string (*board)[8], string move, bool player, bool &gameEnded, 
   if(nOfWhite==0||nOfBlack==0){
     
     gameEnded = !gameEnded;
-    return;
+    return allPossibleMoves;
   }
 
-
+  if()
+  
+  return allPossibleMoves;
 }
 string elmo(string (*board)[8], bool elmoColor){
   string example="12x13";
@@ -178,6 +181,7 @@ string elmo(string (*board)[8], bool elmoColor){
 int main(int argc, char** argv){
 
   std::string  board[8][8];
+  vector<string> allPossibleMoves;
   string move="0";
   bool elmoColor = true; //bot checker color - white
   bool player = false; // Black on move
@@ -197,18 +201,18 @@ int main(int argc, char** argv){
       showBoard(board);
 
     
-    if(!elmoColor)
+    if(elmoColor == player)
       move=elmo(board,elmoColor);
     else
       cin>>move;
 
     
-    gameManager(board, move, player, gameEnded, whiteWon);
+    allPossibleMoves = gameManager(board, player, gameEnded, whiteWon);
     
     update(board,move);
    
       
-    elmoColor = !elmoColor;
+    player = !player;
     if(gameEnded){
       if(whiteWon)
 	cout<<"White won";
