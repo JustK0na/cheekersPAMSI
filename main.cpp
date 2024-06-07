@@ -3,12 +3,14 @@
 #include <sstream>
 #include <vector>
 #include <ctime>
-#include <windows.h>
+//#include <windows.h>
 
 using namespace std;
 
 void showBoard(string (*board)[8]){
   //system("cls"); //WINDOWS ONLY
+  //system("clear"); //LINUX ONLY
+  //cout << "\033[2J\033[1;1H"; //BOTH
   cout<<"  ";
   for(int i=0; i<8; i++)
     cout<<i<<" ";
@@ -46,7 +48,7 @@ void initBoard(string (*board)[8]){
 
 }
 
-void update(string (*board)[8], string move){
+void update(string (*board)[8], string move, bool player){
   //decode move
   vector<string> sequence;
   vector<char> helpChar;
@@ -55,7 +57,7 @@ void update(string (*board)[8], string move){
   string tmp="";
   string figure = "";
   char c;
-  int a=0,b=0,pom=0;
+  int a=0,b=0,olda=0, oldb=0,pom=0;
 
   //decode move
   while(stringStream.get(c)){
@@ -80,7 +82,7 @@ void update(string (*board)[8], string move){
   for(int i=0; i<(int)sequence.size(); i++){
     sequenceInt.push_back(stoi(sequence.at(i)));
     // cout<<sequenceInt.at(i)<<"\t";
-  }
+    }
   cout<<endl;
   
   //Dealing with multipe moves at once
@@ -109,8 +111,9 @@ void update(string (*board)[8], string move){
       else{
 	b = 2*pom + 6;
       }
-	
-      // cout<<"\t\t"<<a<<"\t\t"<<b<<endl;
+      olda = a;
+      oldb = b;
+       cout<<"\t\t"<<a<<"\t\t"<<b<<endl;
       figure = board[a][b];
       if((a+b)%2==0)
 	board[a][b] = "🔲";
@@ -120,7 +123,7 @@ void update(string (*board)[8], string move){
     }
     
     else if(i%2!=0){
-      // cout<<"\t\t\t\t\t"<<sequenceInt.at(i)<<endl;
+      cout<<"\t\t\t\t\t"<<sequenceInt.at(i)<<endl;
       pom = sequenceInt.at(i);
       while(pom>0){
 	pom -= 4;
@@ -133,9 +136,30 @@ void update(string (*board)[8], string move){
       else{
 	b = 2*pom + 6;
       }
+
+
       
-      // cout<<"\t\t"<<a<<"\t\t"<<b<<endl;
+      cout<<"\t\t"<<a<<"\t\t"<<b<<endl;
       board[a][b] = figure;
+
+      //Obsługa bicia
+      cout<<endl<<"olda: "<<olda<<"   a: "<<a<<" player: "<<player<<endl;
+      if(!player&&a-olda>1){
+	cout<<"doszlo tu do sigmy, clown"<<endl;
+	a--;b=b+(oldb-b)/2;;
+	if((olda+oldb)%2==0)
+	board[a][b] = "🔲";
+      else
+	board[a][b] = "🔳";
+      }
+      if(player&&olda-a>1){
+	cout<<"doszlo tu do sigmy, skull"<<endl;
+	a++;b=b+(oldb-b)/2;
+	if((a+b)%2==0)
+	board[a][b] = "🔲";
+      else
+	board[a][b] = "🔳";
+      }
     }
   }  
 
@@ -152,25 +176,29 @@ vector<string> gameManager(string (*board)[8], bool player, bool &gameEnded, boo
 	nOfBlack++;
     }
   if(nOfWhite==0||nOfBlack==0){
-    
+    if(!nOfWhite)
+      whiteWon=!whiteWon;
     gameEnded = !gameEnded;
     return allPossibleMoves;
   }
 
-  if()
+ 
   
   return allPossibleMoves;
 }
 string elmo(string (*board)[8], bool elmoColor){
   string example="12x13";
-  cout<<example<<endl;
+
   //searching for all possible moves
-  if(elmoColor)
+  if(elmoColor){
+    example = "23x14";
     cout<<"im skull\n";
-  
-  else
+    cout<<example<<endl;
+  }
+  else{
     cout<<"im clown\n";
-      
+    cout<<example<<endl;
+  }
   //picking the righr one
 
   return example;
@@ -200,16 +228,17 @@ int main(int argc, char** argv){
     if(GUIMode)
       showBoard(board);
 
-    
+    allPossibleMoves = gameManager(board, player, gameEnded, whiteWon);
+
     if(elmoColor == player)
       move=elmo(board,elmoColor);
     else
       cin>>move;
 
     
-    allPossibleMoves = gameManager(board, player, gameEnded, whiteWon);
+
     
-    update(board,move);
+    update(board,move,player);
    
       
     player = !player;
