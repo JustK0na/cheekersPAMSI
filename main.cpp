@@ -9,6 +9,7 @@ using namespace std;
 
 void showBoard(string (*board)[8]){
   //system("cls"); //WINDOWS ONLY
+  
   //system("clear"); //LINUX ONLY
   //cout << "\033[2J\033[1;1H"; //BOTH
   cout<<"  ";
@@ -208,6 +209,8 @@ string elmo(string (*board)[8], bool elmoColor){
 //Black 0
 int main(int argc, char** argv){
 
+  //system("[Console]::OutputEncoding = [System.Text.Encoding]::UTF8"); //Windows UTF8 encoding
+  
   std::string  board[8][8];
   vector<string> allPossibleMoves;
   string move="0";
