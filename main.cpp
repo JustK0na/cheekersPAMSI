@@ -3,8 +3,14 @@
 #include <sstream>
 #include <vector>
 #include <ctime>
-//#include <windows.h>
+#include <windows.h>
+#include <stdlib.h>
 
+
+//White 💀
+//Black 🤡
+//White_King 👑	
+//Black_King 🎩
 using namespace std;
 
 void showBoard(string (*board)[8]){
@@ -31,9 +37,9 @@ void initBoard(string (*board)[8]){
   for(int i=0; i<8; i++){
     for(int j=0; j<8; j++){
       if((i+j)%2==0)
-	board[i][j] = "🔲";
+	board[i][j] = "🔲";//black squere
       else
-	 board[i][j] = "🔳";
+	board[i][j] = "🔳"; //whtie squere
     }
   }
 
@@ -114,7 +120,7 @@ void update(string (*board)[8], string move, bool player){
       }
       olda = a;
       oldb = b;
-       cout<<"\t\t"<<a<<"\t\t"<<b<<endl;
+      //cout<<"\t\t"<<a<<"\t\t"<<b<<endl;
       figure = board[a][b];
       if((a+b)%2==0)
 	board[a][b] = "🔲";
@@ -124,7 +130,7 @@ void update(string (*board)[8], string move, bool player){
     }
     
     else if(i%2!=0){
-      cout<<"\t\t\t\t\t"<<sequenceInt.at(i)<<endl;
+      // cout<<"\t\t\t\t\t"<<sequenceInt.at(i)<<endl;
       pom = sequenceInt.at(i);
       while(pom>0){
 	pom -= 4;
@@ -140,69 +146,212 @@ void update(string (*board)[8], string move, bool player){
 
 
       
-      cout<<"\t\t"<<a<<"\t\t"<<b<<endl;
+      //cout<<"\t\t"<<a<<"\t\t"<<b<<endl;
       board[a][b] = figure;
 
-      //Obsługa bicia
-      cout<<endl<<"olda: "<<olda<<"   a: "<<a<<" player: "<<player<<endl;
+      //Obsługa bicia !!DO WYMIANY!!
+      //cout<<endl<<"olda: "<<olda<<"   a: "<<a<<" player: "<<player<<endl;
       if(!player&&a-olda>1){
 	cout<<"doszlo tu do sigmy, clown"<<endl;
 	a--;b=b+(oldb-b)/2;;
 	if((olda+oldb)%2==0)
-	board[a][b] = "🔲";
-      else
-	board[a][b] = "🔳";
+	  board[a][b] = "🔲";
+	else
+	  board[a][b] = "🔳";
+      }
+      if(!player&&olda-a>1){
+	cout<<"doszlo tu do sigmy, clown"<<endl;
+	a++;b=b+(oldb-b)/2; 
+	if((olda+oldb)%2==0)
+	  board[a][b] = "🔲";
+	else
+	  board[a][b] = "🔳";
       }
       if(player&&olda-a>1){
 	cout<<"doszlo tu do sigmy, skull"<<endl;
-	a++;b=b+(oldb-b)/2;
+	a++;b=b+(oldb-b)/2; 
 	if((a+b)%2==0)
-	board[a][b] = "🔲";
-      else
-	board[a][b] = "🔳";
+	  board[a][b] = "🔲";
+	else
+	  board[a][b] = "🔳";
+      }
+      if(player&&a-olda>1){
+	cout<<"doszlo tu do sigmy, clown"<<endl;
+	a--;b=b+(oldb-b)/2;;
+	if((olda+oldb)%2==0)
+	  board[a][b] = "🔲";
+	else
+	  board[a][b] = "🔳";
       }
     }
-  }  
+  }
+
+  //Exhange for Kings
+  if(player){
+    for(int j=0; j<8; j++)
+      if(board[0][j]=="💀")
+	board[0][j]="👑";
+  }
+    
+  else{
+    for(int j=0; j<8; j++)
+      if(board[7][j]=="🤡")
+	board[7][j]="🎩";
+  }
 
 }
+bool isOnBoard(int i, int j){
+  return ((i>=0 && i<8)&&(j>=0&&j<8));
+}
+  
+void addMove(vector<string> &moves, int oldi, int oldj, int i, int j){
+  moves.push_back(to_string(oldi*4+oldj/2+1) + "-" + to_string(i*4+j/2+1));
+}
+
+void addCapture(vector<string> &captures, int oldi, int oldj, int i, int j){
+  captures.push_back(to_string(oldi*4+oldj/2+1) + "x" + to_string(i*4+j/2+1));
+}
+
+vector<string> findAllPossibleMoves(string (*board)[8], bool player){
+  
+  vector<string> moves;
+  vector<string> captures;
+  int dir = 1; //if black is on move
+  if(player)
+    dir = -1; //if white is on move
+
+  for(int i=0; i<8; i++){
+    for(int j=0; j<8; j++){
+      //Just for  Men
+      //      cout<<"\n na polu: "<<i<<", "<<j;
+      if((player && board[i][j]=="💀")||(!player && board[i][j]=="🤡")){
+	//cout<<" znaleziono pionek należący do gracza ";
+	
+	if(isOnBoard(i+2*dir, j-2) && board[i+2*dir][j-2]=="🔳"){
+	  if(!player&&(board[i+dir][j-1]=="💀"||board[i+dir][j-1]=="👑"))
+	    addCapture(captures, i,j,i+2*dir, j-2);
+	  if(player&&(board[i+dir][j-1]=="🤡"||board[i+dir][j-1]=="🎩"))
+	    addCapture(captures, i,j,i+2*dir, j-2);
+	}
+      
+	
+	if(isOnBoard(i+2*dir, j+2)&& board[i+2*dir][j+2]=="🔳"){
+	  if(!player&&(board[i+dir][j+1]=="💀"||board[i+dir][j+1]=="👑"))
+	    addCapture(captures, i,j,i+2*dir, j+2);
+	  if(player&&(board[i+dir][j+1]=="🤡"||board[i+dir][j+1]=="🎩"))
+	    addCapture(captures, i,j,i+2*dir, j+2);
+	}
+
+
+
+	
+	if(isOnBoard(i+dir, j-1) && board[i+dir][j-1]=="🔳")
+	  addMove(moves, i,j,i+dir,j-1);
+	if(isOnBoard(i+dir, j+1) && board[i+dir][j+1]=="🔳")
+	  addMove(moves, i,j,i+dir,j+1);
+	    
+      }
+      //For Kings
+      if((player&&board[i][j]=="👑")||(!player&&board[i][j]=="🎩")){
+	for(int di=-1; di<=1; di+=2){
+	  for(int dj=-1; dj<=1; dj+=2){
+	    if(isOnBoard(i+di,j+dj)&& board[i+di][j+dj]=="🔳")
+	      addMove(moves, i,j,i+di,j+dj);
+
+	    if(isOnBoard(i+2*di, j+2*dj)&&board[i+2*di][j+2*dj]=="🔳"){
+	      if(!player&&(board[i+di][j+dj]=="💀"||board[i+di][j+dj]=="👑"))
+		addCapture(captures, i,j,i+2*di,j+2*dj);
+	      if(player&&(board[i+di][j+dj]=="🎩"||board[i+di][j+dj]=="🤡"))
+		addCapture(captures, i,j,i+2*di,j+2*dj);
+	    }
+		 
+	  }
+	}
+      }
+	
+    }
+
+  }
+    
+
+  if(!captures.empty())
+    return captures;
+
+  return moves;
+  
+}
+
+
 vector<string> gameManager(string (*board)[8], bool player, bool &gameEnded, bool &whiteWon){
   int nOfWhite = 0, nOfBlack = 0;
   vector<string> allPossibleMoves;
-  //check if game aleady ended
+  allPossibleMoves = findAllPossibleMoves(board,player);
+  
+
+
+
+//check if game aleady ended
   for(int i=0; i<8;i++)
     for(int j=0; j<8; j++){
-      if(board[i][j]=="💀")//white
+      if(board[i][j]=="💀"||board[i][j]=="👑")//white
 	nOfWhite++;
-      if(board[i][j]=="🤡")//black
+      if(board[i][j]=="🤡"||board[i][j]=="🎩")//black
 	nOfBlack++;
     }
-  if(nOfWhite==0||nOfBlack==0){
-    if(!nOfWhite)
-      whiteWon=!whiteWon;
-    gameEnded = !gameEnded;
+  if(nOfWhite==0||nOfBlack==0||allPossibleMoves.empty()){
+    if(nOfWhite==0 || (player && allPossibleMoves.empty()))
+      whiteWon=false;
+    else if(nOfBlack==0||(!player && allPossibleMoves.empty()))
+      whiteWon=true;
+    gameEnded = true;
     return allPossibleMoves;
   }
 
- 
-  
   return allPossibleMoves;
 }
-string elmo(string (*board)[8], bool elmoColor){
-  string example="12x13";
 
-  //searching for all possible moves
-  if(elmoColor){
-    example = "23x14";
-    cout<<"im skull\n";
-    cout<<example<<endl;
+int elmosHeuristics(string (*board)[8], bool player, bool gameEnded, bool whiteWon){
+  int score=0;
+  int manValue=10;
+  int kingValue=50;
+
+  //raw pawn value + advancedments
+  for(int i=0; i<8; i++){
+    for(int j=0; j<8; j++){
+      if(board[i][j]=="💀"){
+	score+=(manValue+(7-i));
+	if(j>1&&j<6)
+	  score+=2;
+      }
+      else if(board[i][j]=="👑")
+	score+=kingValue;
+      
+      else if(board[i][j]=="🤡"){
+	score-=(manValue+i);
+	if(j>1&&j<6)
+	  score-=2;	
+      }
+      else if(board[i][j]=="🎩")
+	score-=kingValue;
+
+    }
   }
-  else{
-    cout<<"im clown\n";
-    cout<<example<<endl;
-  }
+
+  //mobility
+  vector<string> whiteMoves = gameManager(board, true, gameEnded, whiteWon);
+  vector<string> blackMoves = gameManager(board, false, gameEnded, whiteWon);
+  score += 3*whiteMoves.size();
+  score -= 3*blackMoves.size();
+    
+  return score;
+}
+
+string elmo(string (*board)[8], bool elmoColor, vector<string> possibleMoves, bool gameEnded, bool whiteWon){
+  string bestMove;
   //picking the righr one
-
-  return example;
+  cout<<"\n Board value: "<<elmosHeuristics(board, elmoColor,gameEnded, whiteWon)<<endl;
+  bestMove = possibleMoves.at(rand()%possibleMoves.size());
+  return bestMove;
 
 }
 //White 1
@@ -220,6 +369,9 @@ int main(int argc, char** argv){
   bool GUIMode = true;
   bool whiteWon = true;
 
+  srand(static_cast<unsigned int>(time(0)));
+
+  
   initBoard(board);
   
   if((string)argv[1] == "NET")
@@ -228,29 +380,44 @@ int main(int argc, char** argv){
     elmoColor = false;
   
   while(!gameEnded){
+
+ 
+    
     if(GUIMode)
       showBoard(board);
 
     allPossibleMoves = gameManager(board, player, gameEnded, whiteWon);
+    if(gameEnded){
+      if(whiteWon)
+	cout<<"White won"<<endl;
+      else if(!whiteWon)
+	cout<<"BLack won"<<endl;
+      return 0;
+    }
+    if(allPossibleMoves.size()!=0){
+      for(int i=0; i<(int)allPossibleMoves.size(); i++)
+	cout<<allPossibleMoves.at(i)<<"\t";
+      
+      cout<<endl;
+    }
+    else
+      cout<<"\n no mnoves :(";
+
 
     if(elmoColor == player)
-      move=elmo(board,elmoColor);
+      move=elmo(board,elmoColor,allPossibleMoves, gameEnded, whiteWon);
     else
-      cin>>move;
+      //cin>>move;
+      move=elmo(board,elmoColor,allPossibleMoves, gameEnded, whiteWon);
 
-    
+
+
 
     
     update(board,move,player);
-   
-      
+    cin>>move;
     player = !player;
-    if(gameEnded){
-      if(whiteWon)
-	cout<<"White won";
-      else
-	cout<<"BLack won";
-    }
+
   }
   
 }
