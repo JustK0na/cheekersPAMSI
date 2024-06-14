@@ -3,8 +3,27 @@
 #include <sstream>
 #include <vector>
 #include <ctime>
+#ifdef _WIN32
 #include <windows.h>
+#endif
 #include <stdlib.h>
+
+
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <strings.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+
+#define BUFSPACE 1024
+
+int errno;
+
+
 
 
 //White 💀
@@ -90,7 +109,7 @@ void update(string (*board)[8], string move, bool player){
     sequenceInt.push_back(stoi(sequence.at(i)));
     // cout<<sequenceInt.at(i)<<"\t";
     }
-  cout<<endl;
+  //cout<<endl;
   
   //Dealing with multipe moves at once
   if(sequenceInt.size()>2){
@@ -152,7 +171,7 @@ void update(string (*board)[8], string move, bool player){
       //Obsługa bicia !!DO WYMIANY!!
       //cout<<endl<<"olda: "<<olda<<"   a: "<<a<<" player: "<<player<<endl;
       if(!player&&a-olda>1){
-	cout<<"doszlo tu do sigmy, clown"<<endl;
+	//	cout<<"doszlo tu do sigmy, clown"<<endl;
 	a--;b=b+(oldb-b)/2;;
 	if((olda+oldb)%2==0)
 	  board[a][b] = "🔲";
@@ -160,7 +179,7 @@ void update(string (*board)[8], string move, bool player){
 	  board[a][b] = "🔳";
       }
       if(!player&&olda-a>1){
-	cout<<"doszlo tu do sigmy, clown"<<endl;
+	//	cout<<"doszlo tu do sigmy, clown"<<endl;
 	a++;b=b+(oldb-b)/2; 
 	if((olda+oldb)%2==0)
 	  board[a][b] = "🔲";
@@ -168,7 +187,7 @@ void update(string (*board)[8], string move, bool player){
 	  board[a][b] = "🔳";
       }
       if(player&&olda-a>1){
-	cout<<"doszlo tu do sigmy, skull"<<endl;
+	//	cout<<"doszlo tu do sigmy, skull"<<endl;
 	a++;b=b+(oldb-b)/2; 
 	if((a+b)%2==0)
 	  board[a][b] = "🔲";
@@ -176,7 +195,7 @@ void update(string (*board)[8], string move, bool player){
 	  board[a][b] = "🔳";
       }
       if(player&&a-olda>1){
-	cout<<"doszlo tu do sigmy, clown"<<endl;
+	//	cout<<"doszlo tu do sigmy, clown"<<endl;
 	a--;b=b+(oldb-b)/2;;
 	if((olda+oldb)%2==0)
 	  board[a][b] = "🔲";
@@ -349,7 +368,7 @@ int elmosHeuristics(string (*board)[8], bool player, bool gameEnded, bool whiteW
 string elmo(string (*board)[8], bool elmoColor, vector<string> possibleMoves, bool gameEnded, bool whiteWon){
   string bestMove;
   //picking the righr one
-  cout<<"\n Board value: "<<elmosHeuristics(board, elmoColor,gameEnded, whiteWon)<<endl;
+  //cout<<"\n Board value: "<<elmosHeuristics(board, elmoColor,gameEnded, whiteWon)<<endl;
   bestMove = possibleMoves.at(rand()%possibleMoves.size());
   return bestMove;
 
@@ -359,18 +378,38 @@ string elmo(string (*board)[8], bool elmoColor, vector<string> possibleMoves, bo
 int main(int argc, char** argv){
 
   //system("[Console]::OutputEncoding = [System.Text.Encoding]::UTF8"); //Windows UTF8 encoding
+
+
+  char buf[BUFSPACE];
+  int serv_sock, n, nr_ruchu;
+  struct sockaddr_in serv_addr;
+  struct hostent *serv_hostent;
+
+
+  
+
+
+
+
   
   std::string  board[8][8];
   vector<string> allPossibleMoves;
   string move="0";
+  int MAXDEPTH = stoi(argv[3]);
   bool elmoColor = true; //bot checker color - white
   bool player = false; // Black on move
   bool gameEnded = false;
   bool GUIMode = true;
   bool whiteWon = true;
 
-  srand(static_cast<unsigned int>(time(0)));
+  if(argc==5||argc==7){
+    int seed = stoi(argv[4]);
+    srand(static_cast<unsigned int>(seed));
+  }
+  else
+    srand(static_cast<unsigned int>(time(0)));
 
+  
   
   initBoard(board);
   
@@ -378,46 +417,97 @@ int main(int argc, char** argv){
     GUIMode = false;
   if((string)argv[2] == "BLACK")
     elmoColor = false;
-  
+
+
+  if(!GUIMode){
+    serv_sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (serv_sock < 0) {
+      perror("socket");
+      exit(errno);
+    }
+    serv_hostent = gethostbyname(argv[5]);
+    if (serv_hostent == 0) {
+      fprintf(stderr, "%s: nieznany adres IP %s\n", argv[0], argv[5]);
+      exit(-1);
+    }
+    serv_addr.sin_family = AF_INET;
+    memcpy(&serv_addr.sin_addr, serv_hostent->h_addr, serv_hostent->h_length);
+    serv_addr.sin_port = htons(atoi(argv[6]));
+    
+    printf("Laczymy sie z serwerem ...\n");
+    if (connect(serv_sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+      perror("connect");
+      exit(-1);
+    }
+    
+    printf("Polaczenie nawiazane, zaczynamy gre ...\n");
+    
+    
+  }
+  nr_ruchu = 0;				/* czarny robi ruchy parzyste */
+  if (elmoColor) nr_ruchu = 0;	/* bialy nieparzyste */
   while(!gameEnded){
 
- 
-    
-    if(GUIMode)
+    if(GUIMode){
       showBoard(board);
-
-    allPossibleMoves = gameManager(board, player, gameEnded, whiteWon);
-    if(gameEnded){
-      if(whiteWon)
-	cout<<"White won"<<endl;
-      else if(!whiteWon)
-	cout<<"BLack won"<<endl;
-      return 0;
-    }
-    if(allPossibleMoves.size()!=0){
-      for(int i=0; i<(int)allPossibleMoves.size(); i++)
-	cout<<allPossibleMoves.at(i)<<"\t";
+      allPossibleMoves = gameManager(board, player, gameEnded, whiteWon);
+      if(gameEnded){
+	if(whiteWon)
+	  cout<<"White won"<<endl;
+	else if(!whiteWon)
+	  cout<<"BLack won"<<endl;
+	return 0;
+      }
+      if(allPossibleMoves.size()!=0){
+	for(int i=0; i<(int)allPossibleMoves.size(); i++)
+	  cout<<allPossibleMoves.at(i)<<"\t";
+	
+	cout<<endl;
+      }
+      else
+	cout<<"\n no mnoves :(";
       
-      cout<<endl;
+      
+      if(elmoColor == player)
+	move=elmo(board,elmoColor,allPossibleMoves, gameEnded, whiteWon);
+      else
+	move=elmo(board,elmoColor,allPossibleMoves, gameEnded, whiteWon);
+      
+      update(board,move,player);
+      player = !player;
     }
-    else
-      cout<<"\n no mnoves :(";
-
-
-    if(elmoColor == player)
-      move=elmo(board,elmoColor,allPossibleMoves, gameEnded, whiteWon);
-    else
-      //cin>>move;
-      move=elmo(board,elmoColor,allPossibleMoves, gameEnded, whiteWon);
-
-
-
-
-    
-    update(board,move,player);
-    cin>>move;
-    player = !player;
-
+    else{//NET
+      
+      allPossibleMoves = gameManager(board, player, gameEnded, whiteWon);
+      if(elmoColor == player){
+	move=elmo(board,elmoColor,allPossibleMoves, gameEnded, whiteWon);
+	printf("Wysylam do serwera moj ruch: %s\n", move.c_str());
+	if (write(serv_sock, move.c_str(), strlen(move.c_str())) < 0){
+	  perror("write");
+	  exit(errno);
+	}
+	update(board,move,player);
+	player =! player;
+      }
+      printf("Czekam na ruch przeciwnika ...\n");
+      n=read(serv_sock, buf, sizeof buf);
+      if (n<0) {
+	perror("read");
+	exit(errno);
+      }
+      if (n==0) { /* pusty komunikat = zamkniete polaczenie */
+	printf("Broker zamknal polaczenie, hmmmm...\n");
+	exit(0);
+      }
+      buf[n] = 0;
+      printf("Otrzymalem ruch przeciwnika: %s", buf);
+      if (buf[n-1]!='\n') printf("\n");
+      
+      ++nr_ruchu;
+      string moveServer(buf);
+      update(board,moveServer,player);
+      player = !player;	
+    }
   }
-  
 }
+      
