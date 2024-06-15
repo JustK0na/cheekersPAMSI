@@ -1,0 +1,3 @@
+1. Połączyć program z programem klienta
+2. Dodać wielokrotne bicie do znajdowania najlepszego ruchu
+3. dokończyć algorytm minimax, nie ma nic poza heurystyką przecież

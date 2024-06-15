@@ -7,6 +7,7 @@
 #include <windows.h>
 #endif
 #include <stdlib.h>
+#include <algorithm>
 
 
 #include <stdio.h>
@@ -31,7 +32,7 @@ int errno;
 //White_King 👑	
 //Black_King 🎩
 using namespace std;
-
+int elmosHeuristics(string (*board)[8], bool player, bool gameEnded, bool whiteWon);
 void showBoard(string (*board)[8]){
   //system("cls"); //WINDOWS ONLY
   
@@ -168,10 +169,8 @@ void update(string (*board)[8], string move, bool player){
       //cout<<"\t\t"<<a<<"\t\t"<<b<<endl;
       board[a][b] = figure;
 
-      //Obsługa bicia !!DO WYMIANY!!
       //cout<<endl<<"olda: "<<olda<<"   a: "<<a<<" player: "<<player<<endl;
       if(!player&&a-olda>1){
-	//	cout<<"doszlo tu do sigmy, clown"<<endl;
 	a--;b=b+(oldb-b)/2;;
 	if((olda+oldb)%2==0)
 	  board[a][b] = "🔲";
@@ -179,7 +178,6 @@ void update(string (*board)[8], string move, bool player){
 	  board[a][b] = "🔳";
       }
       if(!player&&olda-a>1){
-	//	cout<<"doszlo tu do sigmy, clown"<<endl;
 	a++;b=b+(oldb-b)/2; 
 	if((olda+oldb)%2==0)
 	  board[a][b] = "🔲";
@@ -187,7 +185,6 @@ void update(string (*board)[8], string move, bool player){
 	  board[a][b] = "🔳";
       }
       if(player&&olda-a>1){
-	//	cout<<"doszlo tu do sigmy, skull"<<endl;
 	a++;b=b+(oldb-b)/2; 
 	if((a+b)%2==0)
 	  board[a][b] = "🔲";
@@ -195,7 +192,6 @@ void update(string (*board)[8], string move, bool player){
 	  board[a][b] = "🔳";
       }
       if(player&&a-olda>1){
-	//	cout<<"doszlo tu do sigmy, clown"<<endl;
 	a--;b=b+(oldb-b)/2;;
 	if((olda+oldb)%2==0)
 	  board[a][b] = "🔲";
@@ -236,9 +232,18 @@ vector<string> findAllPossibleMoves(string (*board)[8], bool player){
   vector<string> moves;
   vector<string> captures;
   int dir = 1; //if black is on move
+  string copiedBoard[8][8];
   if(player)
     dir = -1; //if white is on move
 
+
+  for(int i=0; i<8; i++){
+    for(int j=0; j<8; j++){
+      copiedBoard[i][j]=board[i][j];
+    }
+  }
+
+  
   for(int i=0; i<8; i++){
     for(int j=0; j<8; j++){
       //Just for  Men
@@ -291,16 +296,78 @@ vector<string> findAllPossibleMoves(string (*board)[8], bool player){
     }
 
   }
-    
+  
+  if(!captures.empty()){
+    for(int i=0; i<(int)captures.size(); i++){
+      update(copiedBoard, captures.at(i), player);
+      vector<string> newCaptures = findAllPossibleMoves(copiedBoard, player);
+      for(int j=0; j<(int)newCaptures.size(); j++){
+	if(newCaptures.at(j).find('x')!=std::string::npos){
+	size_t posA = captures.at(i).find('x');
+	size_t posB = newCaptures.at(j).find('x');
 
-  if(!captures.empty())
+	string numA = captures.at(i).substr(posA+1);
+	string numB = newCaptures.at(j).substr(0,posB);
+
+	int moveA, moveB;
+	istringstream(numA) >> moveA;
+	istringstream(numB) >> moveB;
+
+	if(moveA == moveB){
+	  newCaptures.at(j) = captures.at(i) + "x" + newCaptures.at(j).substr(posB+1);
+	  // cout<<"Kolejny ruch dla: "<<captures.at(i)<<" to: "<<newCaptures.at(j)<<endl;
+	  captures.at(i)=newCaptures.at(j);
+	}
+	}
+	
+      }
+
+    }
     return captures;
-
+  }
   return moves;
   
 }
 
+int minimax(string (*board)[8] ,int depth, int alpha, int beta, bool maximizingPlayer, bool player){
+  string copiedBoard[8][8];
+  vector<string> allPossibleMoves=findAllPossibleMoves(board,player);
+  
+  if(depth == 0)
+    return elmosHeuristics(board, player, 0,0);
 
+
+  for(int i=0; i<8; i++)
+    for(int j=0; j<8; j++)
+      copiedBoard[i][j]=board[i][j];
+      
+  
+  if(maximizingPlayer){
+    int maxEval = -10000000;
+    for(int i=0; i<(int)allPossibleMoves.size(); i++){
+      int eval = minimax(board, depth-1, alpha, beta, false, !player);
+      maxEval = std::max(maxEval, eval);
+      alpha = std::max(alpha, eval);
+      if (beta<=alpha)
+	break;
+    }
+      
+    return maxEval;
+  }
+  else{
+    int minEval = 10000000;
+    for(int i=0; i<(int)allPossibleMoves.size(); i++){
+      int eval = minimax(board, depth-1, alpha, beta, true, !player);
+      minEval = std::min(minEval, eval);
+      beta = std::min(beta, eval);
+      if(beta<=alpha)
+	break;
+    }
+    
+    return minEval;
+  }
+  
+}
 vector<string> gameManager(string (*board)[8], bool player, bool &gameEnded, bool &whiteWon){
   int nOfWhite = 0, nOfBlack = 0;
   vector<string> allPossibleMoves;
@@ -339,11 +406,18 @@ int elmosHeuristics(string (*board)[8], bool player, bool gameEnded, bool whiteW
     for(int j=0; j<8; j++){
       if(board[i][j]=="💀"){
 	score+=(manValue+(7-i));
+	/*każdy pionek gracza białego otrzymuje tym więcej punktów im bliżej jest przeciwnego
+	 końca planszy*/
 	if(j>1&&j<6)
 	  score+=2;
+	/*Bonusowe punkty za trzymanie się poza brzegami planszy, ponieważ pion na brzegu
+	 ma tylko jeden możliwy ruch*/
       }
       else if(board[i][j]=="👑")
 	score+=kingValue;
+      /*Bonusowe punkty za każdego króla*/
+
+
       
       else if(board[i][j]=="🤡"){
 	score-=(manValue+i);
@@ -352,25 +426,48 @@ int elmosHeuristics(string (*board)[8], bool player, bool gameEnded, bool whiteW
       }
       else if(board[i][j]=="🎩")
 	score-=kingValue;
-
+      /*To samo dla gracza czarnego, ale ten minimalizuje punkty*/
     }
   }
 
   //mobility
   vector<string> whiteMoves = gameManager(board, true, gameEnded, whiteWon);
   vector<string> blackMoves = gameManager(board, false, gameEnded, whiteWon);
-  score += 3*whiteMoves.size();
-  score -= 3*blackMoves.size();
-    
+  score += 2*whiteMoves.size();
+  score -= 2*blackMoves.size();
+  /*Mobilność - każdy gracz dostaje punkty jeżeli w danej turze ma dużo możliwości ruchu - 
+   im więcej możliwych ruchów tym większa szansa, że któryś będzie dobry*/
   return score;
 }
 
-string elmo(string (*board)[8], bool elmoColor, vector<string> possibleMoves, bool gameEnded, bool whiteWon){
+string elmo(string (*board)[8], bool elmoColor, vector<string> possibleMoves, int DEPTH){
   string bestMove;
-  //picking the righr one
-  //cout<<"\n Board value: "<<elmosHeuristics(board, elmoColor,gameEnded, whiteWon)<<endl;
-  bestMove = possibleMoves.at(rand()%possibleMoves.size());
-  return bestMove;
+  int bestMoveValue;
+  if(elmoColor)
+    bestMoveValue=-100000;
+  else if(!elmoColor)
+    bestMoveValue= 100000;
+  int moveValue;
+
+  for(int i=0; i<(int)possibleMoves.size(); i++){
+    moveValue = minimax(board, DEPTH, -1000000, 1000000,true,elmoColor);
+
+    if(elmoColor){
+      if(moveValue>bestMoveValue){
+	bestMoveValue=moveValue;
+	bestMove = possibleMoves.at(i);
+      }
+    }
+    else{
+      if(moveValue<bestMoveValue){
+	bestMoveValue = moveValue;
+	bestMove = possibleMoves.at(i);
+      }
+    }
+		  
+    }
+
+  return bestMove;//=possibleMoves.at(rand()%possibleMoves.size());
 
 }
 //White 1
@@ -386,7 +483,7 @@ int main(int argc, char** argv){
   struct hostent *serv_hostent;
 
 
-  
+
 
 
 
@@ -418,29 +515,36 @@ int main(int argc, char** argv){
   if((string)argv[2] == "BLACK")
     elmoColor = false;
 
-
+  serv_sock = socket(AF_INET, SOCK_STREAM, 0);
   if(!GUIMode){
     serv_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (serv_sock < 0) {
       perror("socket");
       exit(errno);
     }
-    serv_hostent = gethostbyname(argv[5]);
+    serv_hostent = gethostbyname("localhost");
+    if(argc==7)    
+      serv_hostent = gethostbyname(argv[5]);
+    else if(argc==6)
+      serv_hostent = gethostbyname(argv[4]);
     if (serv_hostent == 0) {
-      fprintf(stderr, "%s: nieznany adres IP %s\n", argv[0], argv[5]);
+      //  fprintf(stderr, "%s: nieznany adres IP %s\n", argv[0], argv[5]);
       exit(-1);
     }
     serv_addr.sin_family = AF_INET;
     memcpy(&serv_addr.sin_addr, serv_hostent->h_addr, serv_hostent->h_length);
-    serv_addr.sin_port = htons(atoi(argv[6]));
+    if(argc==7)
+      serv_addr.sin_port = htons(atoi(argv[6]));
+    else if(argc==6)
+      serv_addr.sin_port = htons(atoi(argv[5]));
     
-    printf("Laczymy sie z serwerem ...\n");
+    // printf("Laczymy sie z serwerem ...\n");
     if (connect(serv_sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
       perror("connect");
       exit(-1);
     }
     
-    printf("Polaczenie nawiazane, zaczynamy gre ...\n");
+    //printf("Polaczenie nawiazane, zaczynamy gre ...\n");
     
     
   }
@@ -461,7 +565,6 @@ int main(int argc, char** argv){
       if(allPossibleMoves.size()!=0){
 	for(int i=0; i<(int)allPossibleMoves.size(); i++)
 	  cout<<allPossibleMoves.at(i)<<"\t";
-	
 	cout<<endl;
       }
       else
@@ -469,19 +572,22 @@ int main(int argc, char** argv){
       
       
       if(elmoColor == player)
-	move=elmo(board,elmoColor,allPossibleMoves, gameEnded, whiteWon);
+	move=elmo(board,player,allPossibleMoves,MAXDEPTH);
       else
-	move=elmo(board,elmoColor,allPossibleMoves, gameEnded, whiteWon);
-      
+	cin>>move;
+
+
+
       update(board,move,player);
       player = !player;
+
     }
     else{//NET
       
       allPossibleMoves = gameManager(board, player, gameEnded, whiteWon);
       if(elmoColor == player){
-	move=elmo(board,elmoColor,allPossibleMoves, gameEnded, whiteWon);
-	printf("Wysylam do serwera moj ruch: %s\n", move.c_str());
+	move=elmo(board,elmoColor,allPossibleMoves,MAXDEPTH);
+	//	printf("Wysylam do serwera moj ruch: %s\n", move.c_str());
 	if (write(serv_sock, move.c_str(), strlen(move.c_str())) < 0){
 	  perror("write");
 	  exit(errno);
@@ -489,19 +595,19 @@ int main(int argc, char** argv){
 	update(board,move,player);
 	player =! player;
       }
-      printf("Czekam na ruch przeciwnika ...\n");
+      //  printf("Czekam na ruch przeciwnika ...\n");
       n=read(serv_sock, buf, sizeof buf);
       if (n<0) {
 	perror("read");
 	exit(errno);
       }
       if (n==0) { /* pusty komunikat = zamkniete polaczenie */
-	printf("Broker zamknal polaczenie, hmmmm...\n");
+	//	printf("Broker zamknal polaczenie, hmmmm...\n");
 	exit(0);
       }
       buf[n] = 0;
-      printf("Otrzymalem ruch przeciwnika: %s", buf);
-      if (buf[n-1]!='\n') printf("\n");
+      // printf("Otrzymalem ruch przeciwnika: %s", buf);
+      if (buf[n-1]!='\n'); //printf("\n");
       
       ++nr_ruchu;
       string moveServer(buf);
